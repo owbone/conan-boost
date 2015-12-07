@@ -6,22 +6,17 @@ import platform, os
 class BoostConan(ConanFile):
     name = "Boost"
     version = "1.59.0" 
+
+    tag = "boost-{}".format(version)
+    source_dir = tag
     
-    settings = "os", "arch", "compiler", "build_type"   
-    FOLDER_NAME = "boost_%s" % version.replace(".", "_") 
+    settings = "os", "arch", "compiler", "build_type" 
     options = {"shared": [True, False], "header_only": [True, False]}
     default_options = "shared=True", "header_only=False"
     counter_config = 0
+    git_url = "https://github.com/boostorg/boost.git"
+    url = "https://github.com/owbone/conan-boost"
     
-    def system_requirements(self):
-        if not self.options.header_only and self.settings.os == "Linux": # Fixme, just debian based works for building
-            self.run("sudo apt-get install libbz2-dev || true")
-            self.run("sudo apt-get install gcc-%s-multilib || true" % self.settings.compiler.version)
-            self.run("sudo apt-get install g++-%s-multilib || true" % self.settings.compiler.version)
-            self.run("sudo dpkg --add-architecture i386 || true")
-            self.run("sudo apt-get update || true")
-            self.run("sudo apt-get install libbz2-dev:i386 || true")
-   
     def config(self):
         # If header only, the compiler, etc, does not affect the package!
         self.counter_config += 1
@@ -30,15 +25,13 @@ class BoostConan(ConanFile):
             self.output.info("HEADER ONLY")
             self.settings.clear()
             self.options.remove("shared")
-        if self.options.shared and "MT" in str(self.settings.compiler.runtime):
+        if not self.options.header_only \
+           and self.settings.os == "Windows" \
+           and "MT" in str(self.settings.compiler.runtime):
             self.options.shared = False
 
     def source(self):
-        zip_name = "%s.zip" % self.FOLDER_NAME if self.settings.os == "Windows" else "%s.tar.gz" % self.FOLDER_NAME
-        url = "http://sourceforge.net/projects/boost/files/boost/%s/%s/download" % (self.version, zip_name)
-        tools.download(url, zip_name)
-        tools.unzip(zip_name, ".")
-        os.unlink(zip_name)
+        self.run("git clone --recursive --branch {} {} {}".format(self.tag, self.git_url, self.source_dir))
 
     def build(self):
         if self.options.header_only:
@@ -63,16 +56,16 @@ class BoostConan(ConanFile):
         b2_flags = " ".join(flags)
 
         command = "b2" if self.settings.os == "Windows" else "./b2"
-        full_command = "cd %s && %s %s -j4 --abbreviate-paths --without-python" % (self.FOLDER_NAME, command, b2_flags)
+        full_command = "cd {} && {} {} -j8 --abbreviate-paths --without-python".format(self.source_dir, command, b2_flags)
         self.output.warn(full_command)
         self.run(full_command)
 
     def package(self):
-        self.copy(pattern="*", dst="include/boost", src="%s/boost" % self.FOLDER_NAME)
-        self.copy(pattern="*.so.*", dst="lib", src="%s/stage/lib" % self.FOLDER_NAME)
-        self.copy(pattern="*.dylib*", dst="lib", src="%s/stage/lib" % self.FOLDER_NAME)
-        self.copy(pattern="*.lib", dst="lib", src="%s/stage/lib" % self.FOLDER_NAME)
-        self.copy(pattern="*.dll", dst="bin", src="%s/stage/lib" % self.FOLDER_NAME)
+        self.copy(pattern="*", dst="include/boost", src="%s/boost" .format(self.source_dir))
+        self.copy(pattern="*.so.*", dst="lib", src="%s/stage/lib" .format(self.source_dir))
+        self.copy(pattern="*.dylib*", dst="lib", src="%s/stage/lib" .format(self.source_dir))
+        self.copy(pattern="*.lib", dst="lib", src="%s/stage/lib" .format(self.source_dir))
+        self.copy(pattern="*.dll", dst="bin", src="%s/stage/lib" .format(self.source_dir))
         
     def package_info(self):
         if not self.options.header_only and self.options.shared:
