@@ -39,15 +39,19 @@ class BoostConan(ConanFile):
 
         command = "bootstrap" if self.settings.os == "Windows" else "./bootstrap.sh"
         try:
-            self.run("cd %s && %s" % (self.FOLDER_NAME, command))
+            self.run("cd {} && {}".format(self.source_dir, command))
         except:
-            self.run("cd %s && type bootstrap.log" if self.settings.os == "Windows" else "cd %s && cat bootstrap.sh")
+            self.run(
+                "cd {} && type bootstrap.log".format(self.source_dir)
+                if self.settings.os == "Windows" 
+                else "cd {} && cat bootstrap.sh".format(self.source_dir)
+            )
             raise
 
-        flags = []
-        if self.settings.compiler == "Visual Studio":
-            flags.append("toolset=msvc-12.0")
+        toolset_map = {"Visual Studio": "msvc-12.0"}
+        toolset = toolset_map.get(self.settings.compiler, self.settings.compiler)
 
+        flags = ["toolset={}".format(toolset)]
         flags.append("link=%s" % ("static" if not self.options.shared else "shared"))
         if self.settings.compiler == "Visual Studio" and self.settings.compiler.runtime:
             flags.append("runtime-link=%s" % ("static" if "MT" in str(self.settings.compiler.runtime) else "shared"))
