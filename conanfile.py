@@ -4,7 +4,7 @@ import platform, os
 
 
 class BoostConan(ConanFile):
-    name = "Boost"
+    name = "boost"
     version = "1.59.0"
 
     tag = "boost-{}".format(version)
