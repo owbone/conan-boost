@@ -5,18 +5,18 @@ import platform, os
 
 class BoostConan(ConanFile):
     name = "Boost"
-    version = "1.59.0" 
+    version = "1.59.0"
 
     tag = "boost-{}".format(version)
     source_dir = tag
-    
-    settings = "os", "arch", "compiler", "build_type" 
+
+    settings = "os", "arch", "compiler", "build_type"
     options = {"shared": [True, False], "header_only": [True, False]}
     default_options = "shared=True", "header_only=False"
     counter_config = 0
     git_url = "https://github.com/boostorg/boost.git"
     url = "https://github.com/owbone/conan-boost"
-    
+
     def config(self):
         # If header only, the compiler, etc, does not affect the package!
         self.counter_config += 1
@@ -43,7 +43,7 @@ class BoostConan(ConanFile):
         except:
             self.run(
                 "cd {} && type bootstrap.log".format(self.source_dir)
-                if self.settings.os == "Windows" 
+                if self.settings.os == "Windows"
                 else "cd {} && cat bootstrap.sh".format(self.source_dir)
             )
             raise
@@ -65,12 +65,12 @@ class BoostConan(ConanFile):
         self.run(full_command)
 
     def package(self):
-        self.copy(pattern="*", dst="include/boost", src="%s/boost" .format(self.source_dir))
-        self.copy(pattern="*.so.*", dst="lib", src="%s/stage/lib" .format(self.source_dir))
-        self.copy(pattern="*.dylib*", dst="lib", src="%s/stage/lib" .format(self.source_dir))
-        self.copy(pattern="*.lib", dst="lib", src="%s/stage/lib" .format(self.source_dir))
-        self.copy(pattern="*.dll", dst="bin", src="%s/stage/lib" .format(self.source_dir))
-        
+        self.copy(pattern="*", dst="include/boost", src="{}/boost".format(self.source_dir))
+        self.copy(pattern="*.so.*", dst="lib", src="{}/stage/lib".format(self.source_dir))
+        self.copy(pattern="*.dylib*", dst="lib", src="{}/stage/lib".format(self.source_dir))
+        self.copy(pattern="*.lib", dst="lib", src="{}/stage/lib".format(self.source_dir))
+        self.copy(pattern="*.dll", dst="bin", src="{}/stage/lib".format(self.source_dir))
+
     def package_info(self):
         if not self.options.header_only and self.options.shared:
             self.cpp_info.defines.append("BOOST_DYN_LINK")
